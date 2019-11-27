@@ -21,8 +21,9 @@ public class LineDecoration extends RecyclerView.ItemDecoration{
     private int mHeight;
     private int mPaddingLeft;
     private int mPaddingRight;
-    private boolean mDrawLastItem = true;
-    private boolean mDrawHeaderFooter = false;
+    private boolean mDrawAtLast = true;
+    private boolean mDrawAtHeader = false;
+    private boolean mDrawAtFooter = false;
 
     public LineDecoration(int color, int height) {
         this.mColorDrawable = new ColorDrawable(color);
@@ -35,12 +36,16 @@ public class LineDecoration extends RecyclerView.ItemDecoration{
         this.mPaddingRight = paddingRight;
     }
 
-    public void setDrawLastItem(boolean mDrawLastItem) {
-        this.mDrawLastItem = mDrawLastItem;
+    public void setDrawAtLast(final boolean drawAtLast) {
+        mDrawAtLast = drawAtLast;
     }
 
-    public void setDrawHeaderFooter(boolean mDrawHeaderFooter) {
-        this.mDrawHeaderFooter = mDrawHeaderFooter;
+    public void setDrawAtHeader(final boolean drawAtHeader) {
+        mDrawAtHeader = drawAtHeader;
+    }
+
+    public void setDrawAtFooter(final boolean drawAtFooter) {
+        mDrawAtFooter = drawAtFooter;
     }
 
     @Override
@@ -66,12 +71,22 @@ public class LineDecoration extends RecyclerView.ItemDecoration{
             orientation = ((LinearLayoutManager) layoutManager).getOrientation();
         }
 
-        if (position>=headerCount&&position<parent.getAdapter().getItemCount()-footerCount||mDrawHeaderFooter){
-            if (orientation == OrientationHelper.VERTICAL){
-                outRect.bottom = mHeight;
-            }else {
-                outRect.right = mHeight;
-            }
+        //头部不绘制
+        if (position < headerCount && !mDrawAtHeader)
+            return;
+
+        //尾部不绘制
+        if (position >= parent.getAdapter().getItemCount() - footerCount && !mDrawAtFooter)
+            return;
+
+        //最后一项不绘制
+        if(position == parent.getAdapter().getItemCount() - footerCount - 1 && !mDrawAtLast)
+            return;
+
+        if (orientation == OrientationHelper.VERTICAL) {
+            outRect.bottom = mHeight;
+        } else {
+            outRect.right = mHeight;
         }
     }
 
@@ -82,17 +97,16 @@ public class LineDecoration extends RecyclerView.ItemDecoration{
         }
 
         int orientation = 0;
-        int headerCount = 0,footerCount = 0,dataCount;
+        int headerCount = 0,dataCount;
 
         if (parent.getAdapter() instanceof BaseQuickAdapter){
             headerCount = ((BaseQuickAdapter) parent.getAdapter()).getHeaderCount();
-            footerCount = ((BaseQuickAdapter) parent.getAdapter()).getFooterCount();
             dataCount = ((BaseQuickAdapter) parent.getAdapter()).getData().size();
         }else {
             dataCount = parent.getAdapter().getItemCount();
         }
         int dataStartPosition = headerCount;
-        int dataEndPosition = headerCount+dataCount;
+        int dataEndPosition = headerCount + dataCount - 1;
 
 
         RecyclerView.LayoutManager layoutManager = parent.getLayoutManager();
@@ -117,24 +131,31 @@ public class LineDecoration extends RecyclerView.ItemDecoration{
             View child = parent.getChildAt(i);
             int position = parent.getChildAdapterPosition(child);
 
-            if (position>=dataStartPosition&&position<dataEndPosition-1//数据项除了最后一项
-                    ||(position == dataEndPosition-1&&mDrawLastItem)//数据项最后一项
-                    ||(!(position>=dataStartPosition&&position<dataEndPosition)&&mDrawHeaderFooter)//header&footer且可绘制
-            ){
 
-                if (orientation == OrientationHelper.VERTICAL){
-                    RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) child.getLayoutParams();
-                    int top = child.getBottom() + params.bottomMargin;
-                    int bottom = top + mHeight;
-                    mColorDrawable.setBounds(start,top,end,bottom);
-                    mColorDrawable.draw(c);
-                }else {
-                    RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) child.getLayoutParams();
-                    int left = child.getRight() + params.rightMargin;
-                    int right = left + mHeight;
-                    mColorDrawable.setBounds(left,start,right,end);
-                    mColorDrawable.draw(c);
-                }
+            //头部不绘制
+            if (position < dataStartPosition && !mDrawAtHeader)
+                continue;
+
+            //尾部不绘制
+            if (position > dataEndPosition && !mDrawAtFooter)
+                continue;
+
+            //最后一项不绘制
+            if(position == dataEndPosition && !mDrawAtLast)
+                continue;
+
+            if (orientation == OrientationHelper.VERTICAL) {
+                RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) child.getLayoutParams();
+                int top = child.getBottom() + params.bottomMargin;
+                int bottom = top + mHeight;
+                mColorDrawable.setBounds(start, top, end, bottom);
+                mColorDrawable.draw(c);
+            } else {
+                RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) child.getLayoutParams();
+                int left = child.getRight() + params.rightMargin;
+                int right = left + mHeight;
+                mColorDrawable.setBounds(left, start, right, end);
+                mColorDrawable.draw(c);
             }
         }
     }
